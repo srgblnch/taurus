@@ -1,0 +1,229 @@
+#!/usr/bin/env python
+
+"""The Spock startup file. This executable is actually an extension of the 
+   ipython file that can be found in <prefix>/ipython (prefix usually being in 
+   linux '/usr/bin'"""
+
+import os, sys, imp, shutil
+import string, getopt
+import PyTango
+import IPython
+import IPython.ipapi
+
+# By default enable physical extensions. 
+#from math import * # math MUST be imported BEFORE PhysicalQInteractive  
+#from IPython.Extensions.PhysicalQInteractive import *
+#import IPython.Extensions.PhysicalQInput
+
+def usage():
+    prgname = os.path.basename(sys.argv[0])
+    print ""
+    print "Usage: %s [options]" % prgname
+    print ""
+    print "  Options:"
+    print "    -m macro_server   Macro server device name"
+    print "    -o door           Door device name"
+    print "    -c color_scheme   IPython color scheme"
+    print "    -d sardana_dir    Override SARDANAD variable" # to be FIXED -> change /homelocal/sicilia/local
+    print "    -p profile        Sardana profile name"
+    print ""
+    sys.exit(1)
+    
+    
+def get_args(argv):
+    try:
+        script_name = argv[0]
+        script_dir, session = os.path.split(script_name)
+        script_name = os.path.realpath(script_name)
+        script_dir = os.path.dirname(script_name)
+        
+        sardana_d = os.getenv('SARDANAD')
+        if not sardana_d:
+            sardana_d = os.path.realpath(os.path.curdir)
+
+        profile = session
+        macro_server = os.getenv('MACRO_SERVER')
+        door = None
+        color_scheme = 'Linux'
+
+        opts, args = getopt.getopt(argv[1:], "m:o:c:d:p:")
+        if len(args) > 0:
+            raise ValueError
+
+        for opt, value in opts:
+            if opt == '-m':
+                macro_server = value
+            if opt == '-o':
+                door = value
+            if opt == '-c':
+                color_scheme = value
+            if opt == '-d':
+                sardana_d = value
+            if opt == '-p':
+                profile = value
+        
+        userdir = os.path.realpath(os.path.curdir)
+        profile_filename = 'ipy_profile_' + profile
+        
+        try:
+            imp.find_module(profile_filename,[userdir,])
+        except ImportError,e:
+            r = ''
+            while not (r is 'y' or r is 'n'):  
+                prompt = "Profile '" + profile + "' does not exist. Do you want to create one now ([y]/n)? "
+                r = raw_input(prompt) or 'y'
+            if r is 'y':
+                try:
+                    create_profile(userdir,session,profile)
+                except:
+                    profile = ''
+            else:
+                profile = ''
+                
+        prompt = '\#.%s> ' % string.upper(profile)
+
+        ipy_argv = ['-prompt_in1', prompt,
+                    '-ipythondir', sardana_d, # to be FIXED -> change /homelocal/sicilia/local
+                    '-profile',    profile,
+                    '-colors',     color_scheme]
+
+        user_ns = {'MACRO_SERVER': macro_server,
+                   'DOOR':         door,
+                   'PROFILE':      profile}
+        
+        return ipy_argv, user_ns
+
+    except:
+        usage()
+
+def create_profile(userdir,dft_profile,profile):
+    
+    dft_profile_filename = 'spock/ipy_profile_' + dft_profile
+   
+    try:
+        src, src_name, props = imp.find_module(dft_profile_filename)
+    except Exception,e:
+        print "Default '" + dft_profile + "' profile not found."
+        print "Make sure '" + dft_profile + "' was installed correctly."
+        raise e
+    
+    src_data = src.read()
+
+#    
+# Discover door name
+#
+    door_name = get_device_from_user("Door")
+    
+#    
+# Discover macro server name
+#
+    #ms_name = get_device_from_user("MacroServer")
+    ms_name = get_macroserver_for_door(door_name)
+
+    dest_data = src_data.replace('@macroserver_name@',ms_name)
+    dest_data = dest_data.replace('@door_name@',door_name)
+    
+    dest_name = userdir
+    dest_name += '/ipy_profile_' + profile + '.py'
+    
+    try:
+        f = open("ipy_user_conf.py","r")
+    except:
+        fname = src_name.replace("ipy_profile_"+dft_profile,"ipy_user_conf")
+        shutil.copy(fname, userdir+"/ipy_user_conf.py")
+    
+    try:
+        f = open("ipythonrc","r")
+    except:
+        f = open("ipythonrc","w")
+        f.write("# Empty, see ipy_user_conf.py")
+        f.close()
+
+    
+    dest = open(dest_name,"w")
+    dest.write(dest_data)
+    dest.flush()
+    dest.close()
+    
+    
+def get_macroserver_for_door(door_name):
+    
+    db = PyTango.Database()
+    props = db.get_device_property(door_name,["MacroServerName"])
+    prop = props.get("MacroServerName")
+    if prop is None:
+        return None
+    return prop[0]
+    
+
+def get_device_from_user(expected_class):
+    
+    print_dev_from_class(expected_class)
+    prompt = "%s name from the list? " % expected_class
+    from_user = raw_input(prompt).strip()
+    
+    name = ''
+    try:
+        name,alias = from_name_to_tango(from_user)
+    except:
+        print "Warning: the given %s does not exist" % expected_class
+        return name 
+    
+    try:
+        cl_name = classdb.get_class_for_device(name)
+        class_correct = cl_name is expected_class
+        if not class_correct:
+            print "Warning: the given name is not a %s (it is a %s)"%(expected_class,cl_name)
+    except:
+        pass
+    return name
+
+
+def print_dev_from_class(classname):
+    
+    db = PyTango.Database()
+    dev_list = db.get_device_name('%',classname)
+    try:
+        exp_dev_list = db.get_device_exported_for_class(classname)
+    except:
+        # get_device_exported_for_class is only available in PyTango 3.0.4
+        exp_dev_list = []
+    tg_host = os.getenv("TANGO_HOST", "(no tango host defined)")
+    print "Available",classname,"devices from",tg_host,":"
+    for dev in dev_list:
+        name,alias = from_name_to_tango(dev)
+        res = alias or name
+        if dev in exp_dev_list:
+            res += " (running)"
+        print res
+        
+
+def from_name_to_tango(name):
+    
+    db = PyTango.Database()
+    
+    alias = None
+    elems = name.split('/')
+    if len(elems) is 3:
+        try:
+            alias = db.get_alias(name)
+            if alias.lower() == 'nada':
+                alias = None
+        except:
+            alias = None
+    elif len(elems) is 1:
+        alias = name
+        name = db.get_device_alias(alias)
+    else:
+        raise Exception("Invalid device name '%s'" % name)
+    
+    return name,alias
+
+def main():
+
+    ipy_argv, user_ns = get_args(sys.argv)
+    shell = IPython.Shell.IPShell(argv=ipy_argv, user_ns=user_ns)
+    IPython.ipapi.get().my_shell = shell
+    shell.mainloop()
+
+main()

@@ -1,0 +1,1 @@
+SUBDIRS = communication countertimer motor pseudocounter pseudomotor zerod

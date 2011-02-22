@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# front script for Pool Tango device server
+# (to be installed in sicilia and put on the path)
+
+. alba_blissrc
+
+add2var LD_LIBRARY_PATH $(CompOs $SICILIA/ds/_CompOs_/pool/lib)
+add2var LD_LIBRARY_PATH  ${BLISSADM}/python/bliss_python/lib
+add2var LD_LIBRARY_PATH  $(CompOs ${SICILIA}/lib/_CompOs_/python_packages)
+
+add2var PYTHONPATH $(CompOs $SICILIA/ds/_CompOs_/pool/lib)
+add2var PYTHONPATH $SICILIA/lib/python
+add2var PYTHONPATH $(CompOs $SICILIA/lib/_CompOs_/python_packages)
+
+export LD_LIBRARY_PATH
+export PYTHONPATH
+
+$SICILIA/ds/`getos`/pool/Pool $*

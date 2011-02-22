@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="lib/JGoodies/animation.jar"/>
+	<classpathentry kind="lib" path="lib/JGoodies/binding.jar"/>
+	<classpathentry kind="lib" path="lib/JGoodies/forms.jar"/>
+	<classpathentry kind="lib" path="lib/JGoodies/looks.jar" sourcepath="/home/tcoutinho/workspace/lib/JGoodies/looks-2.0.4/src"/>
+	<classpathentry kind="lib" path="lib/xmlbeans/xbean.jar" sourcepath="/home/tiago/Downloads/xmlbeans-2.3.0-src.zip"/>
+	<classpathentry kind="lib" path="lib/xmlbeans/jsr173_1.0_api.jar"/>
+	<classpathentry kind="lib" path="lib/JGoodies/validation.jar"/>
+	<classpathentry kind="lib" path="lib/tango/ATKCore.jar"/>
+	<classpathentry kind="lib" path="lib/tango/ATKWidget.jar"/>
+	<classpathentry kind="lib" path="lib/tango/TangORB.jar" sourcepath="/home/tiago/workspace/javaapi"/>
+	<classpathentry kind="lib" path="lib/jgraph/jgraph.jar"/>
+	<classpathentry kind="lib" path="lib/sardanaconfig.jar"/>
+	<classpathentry kind="lib" path="lib/tangoconfig.jar"/>
+	<classpathentry kind="lib" path="lib/substance/substance.jar"/>
+	<classpathentry kind="output" path="binDebug"/>
+</classpath>

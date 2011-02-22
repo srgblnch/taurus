@@ -1,0 +1,75 @@
+#!/usr/bin/env python
+
+import os, sys, string, getopt
+import IPython
+
+def usage():
+    prgname = os.path.basename(sys.argv[0])
+    print ""
+    print "Usage: %s [options]" % prgname
+    print ""
+    print "  Options:"
+    print "    -m macro_server   Macro server device name"
+    print "    -o door           Door device name"
+    print "    -c color_scheme   IPython color scheme"
+    print "    -d sardana_dir    Override SARDANAD variable"
+    print "    -p profile        Sardana profile name"
+    print ""
+    sys.exit(1)
+    
+    
+def get_args(argv):
+    try:
+        script_name = argv[0]
+        script_dir, session = os.path.split(script_name)
+        script_name = os.path.realpath(script_name)
+        script_dir = os.path.dirname(script_name)
+        
+        sardana_d = os.getenv('SARDANAD')
+        if not sardana_d:
+            sardana_d = script_dir
+
+        profile = session
+        macro_server = os.getenv('MACRO_SERVER')
+        door = None
+        color_scheme = 'Linux'
+
+        opts, args = getopt.getopt(argv[1:], "m:o:c:d:p:")
+        if len(args) > 0:
+            raise ValueError
+
+        for opt, value in opts:
+            if opt == '-m':
+                macro_server = value
+            if opt == '-o':
+                door = value
+            if opt == '-c':
+                color_scheme = value
+            if opt == '-d':
+                sardana_d = value
+            if opt == '-p':
+                profile = value
+                
+        prompt = '\#.%s> ' % string.upper(profile)
+
+        ipy_argv = ['-prompt_in1', prompt,
+                    '-ipythondir', sardana_d,
+                    '-profile',    profile,
+                    '-colors',     color_scheme]
+
+        user_ns = {'MACRO_SERVER': macro_server,
+                   'DOOR':         door,
+                   'PROFILE':      profile}
+        
+        return ipy_argv, user_ns
+
+    except:
+        usage()
+    
+
+def main():
+    ipy_argv, user_ns = get_args(sys.argv)
+    shell = IPython.Shell.IPShell(argv=ipy_argv, user_ns=user_ns)
+    shell.mainloop()
+
+main()
