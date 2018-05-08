@@ -66,7 +66,19 @@ class TaurusValueSpinBox(Qt.QAbstractSpinBox):
         return self.lineEdit().getValue()
 
     def keyPressEvent(self, evt):
+        if evt.key() in (Qt.Qt.Key_Control, ):
+            self.setSingleStep(self._singleStep*10)
+        elif evt.key() in (Qt.Qt.Key_Alt, Qt.Qt.Key_AltGr):
+            self.setSingleStep(self._singleStep/10)
+        if evt.key() in (Qt.Qt.Key_Up, Qt.Qt.Key_Down):
+            return Qt.QAbstractSpinBox.keyPressEvent(self, evt)
         return self.lineEdit().keyPressEvent(evt)
+
+    def keyReleaseEvent(self, evt):
+        if evt.key() in (Qt.Qt.Key_Control, ):
+            self.setSingleStep(self._singleStep/10)
+        elif evt.key() in (Qt.Qt.Key_Alt, Qt.Qt.Key_AltGr):
+            self.setSingleStep(self._singleStep*10)
 
     # ~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
     # Mandatory overload from QAbstractSpinBox
